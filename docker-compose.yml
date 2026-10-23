@@ -1,0 +1,20 @@
+services:
+  battleship:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: battleship
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET:-battleship-production-secret-key}
+      - JWT_EXPIRES_IN=7d
+      - DB_STORAGE=/app/data/database.sqlite
+    volumes:
+      - battleship_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  battleship_data:
