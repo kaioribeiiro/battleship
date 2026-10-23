@@ -1,0 +1,711 @@
+openapi: 3.0.3
+info:
+  title: Batalha Naval API
+  description: |
+    API REST do jogo de Batalha Naval multiplayer em tempo real.
+    Eventos em tempo real são tratados via Socket.IO (consulte SOCKET_EVENTS.md).
+  version: 1.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: http://localhost:3000/api
+    description: Servidor de desenvolvimento local
+tags:
+  - name: Health
+  - name: Auth
+  - name: Users
+  - name: Games
+  - name: Invitations
+security: []
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Verificação de saúde do servidor
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Registra um novo usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        '201':
+          description: Usuário criado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Autentica um usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        '200':
+          description: Autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Retorna o usuário autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Usuário autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Encerra a sessão
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Sem conteúdo
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/online:
+    get:
+      tags: [Users]
+      summary: Lista usuários online
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de usuários online
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Perfil público de um usuário
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Perfil
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /scoreboard:
+    get:
+      tags: [Users]
+      summary: Ranking público de jogadores
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Ranking ordenado por vitórias e empates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScoreboardEntry'
+
+  /games/vs-bot:
+    post:
+      tags: [Games]
+      summary: Cria uma partida contra o jogador virtual (CPU)
+      description: |
+        O bot aceita o convite e posiciona a frota automaticamente.
+        O jogador humano só precisa posicionar a própria frota (`POST /games/{id}/fleet`)
+        e realizar os disparos (`POST /games/{id}/shots`).
+        O bot responde automaticamente a cada tiro do humano.
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Partida criada contra o bot
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gameId:
+                    type: string
+                    format: uuid
+                  botId:
+                    type: string
+                    format: uuid
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /games:
+    get:
+      tags: [Games]
+      summary: Histórico de partidas do usuário
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/GameStatus'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Lista de partidas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GameSummary'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Games]
+      summary: Cria uma partida e convida um usuário online
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inviteeId]
+              properties:
+                inviteeId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Partida e convite criados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  game:
+                    $ref: '#/components/schemas/Game'
+                  invitation:
+                    $ref: '#/components/schemas/Invitation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /games/{id}:
+    get:
+      tags: [Games]
+      summary: Estado da partida (frota adversária mascarada enquanto em andamento)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '200':
+          description: Estado da partida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameState'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /games/{id}/result:
+    get:
+      tags: [Games]
+      summary: Resultado final da partida
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '200':
+          description: Resultado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameResultSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /games/{id}/fleet:
+    post:
+      tags: [Games]
+      summary: Posiciona a frota do jogador
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ships]
+              properties:
+                ships:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ShipInput'
+      responses:
+        '200':
+          description: Frota registrada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gameId: { type: string, format: uuid }
+                  status: { $ref: '#/components/schemas/GameStatus' }
+                  turnUserId: { type: string, format: uuid, nullable: true }
+                  waitingFor: { type: string, nullable: true, example: opponent }
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /games/{id}/shots:
+    post:
+      tags: [Games]
+      summary: Realiza um disparo
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShotInput'
+      responses:
+        '200':
+          description: Resultado do disparo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shot'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /games/{id}/abandon:
+    post:
+      tags: [Games]
+      summary: Abandona a partida (adversário vence)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/GameId'
+      responses:
+        '200':
+          description: Partida abandonada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gameId: { type: string, format: uuid }
+                  status: { $ref: '#/components/schemas/GameStatus' }
+                  winnerId: { type: string, format: uuid }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /invitations/{id}/accept:
+    post:
+      tags: [Invitations]
+      summary: Aceita um convite
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/InvitationId'
+      responses:
+        '200':
+          description: Convite aceito
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gameId: { type: string, format: uuid }
+                  status: { $ref: '#/components/schemas/GameStatus' }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '410':
+          description: Convite expirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /invitations/{id}/reject:
+    post:
+      tags: [Invitations]
+      summary: Rejeita um convite
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/InvitationId'
+      responses:
+        '200':
+          description: Convite rejeitado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  invitationId: { type: string, format: uuid }
+                  status: { $ref: '#/components/schemas/InvitationStatus' }
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    GameId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    InvitationId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    BadRequest:
+      description: Requisição inválida
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Não autenticado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Sem permissão
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Não encontrado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: Conflito de estado
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Health:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+        uptime: { type: number, example: 42.1 }
+        timestamp: { type: string, format: date-time }
+
+    Credentials:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 20
+          example: capitao
+        password:
+          type: string
+          minLength: 6
+          format: password
+          example: segredo123
+
+    AuthResponse:
+      type: object
+      properties:
+        token: { type: string }
+        user: { $ref: '#/components/schemas/User' }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        wins: { type: integer, example: 3 }
+        losses: { type: integer, example: 1 }
+        draws: { type: integer, example: 1 }
+        isBot: { type: boolean, default: false }
+
+    UserSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+
+    ScoreboardEntry:
+      type: object
+      properties:
+        rank: { type: integer }
+        userId: { type: string, format: uuid }
+        username: { type: string }
+        wins: { type: integer }
+        losses: { type: integer }
+        draws: { type: integer }
+
+    GameStatus:
+      type: string
+      enum: [WAITING, SETUP, IN_PROGRESS, FINISHED, ABANDONED]
+
+    GameResult:
+      type: string
+      enum: [WIN, DRAW]
+
+    GameResultSummary:
+      type: object
+      properties:
+        gameId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/GameStatus' }
+        result: { $ref: '#/components/schemas/GameResult' }
+        winnerId: { type: string, format: uuid, nullable: true }
+        loserId: { type: string, format: uuid, nullable: true }
+        totalTurns: { type: integer }
+        endedAt: { type: string, format: date-time }
+
+    InvitationStatus:
+      type: string
+      enum: [PENDING, ACCEPTED, REJECTED, EXPIRED]
+
+    ShipType:
+      type: string
+      enum: [CARRIER, BATTLESHIP, CRUISER, SUBMARINE, DESTROYER]
+
+    ShotResult:
+      type: string
+      enum: [MISS, HIT, SUNK]
+
+    Game:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        player1Id: { type: string, format: uuid }
+        player2Id: { type: string, format: uuid, nullable: true }
+        status: { $ref: '#/components/schemas/GameStatus' }
+        result: { $ref: '#/components/schemas/GameResult', nullable: true }
+        winnerId: { type: string, format: uuid, nullable: true }
+        abandonedById: { type: string, format: uuid, nullable: true }
+        totalTurns: { type: integer }
+        startedAt: { type: string, format: date-time, nullable: true }
+        endedAt: { type: string, format: date-time, nullable: true }
+
+    GameSummary:
+      allOf:
+        - $ref: '#/components/schemas/Game'
+        - type: object
+          properties:
+            opponent:
+              allOf:
+                - $ref: '#/components/schemas/UserSummary'
+              nullable: true
+
+    ShotRecord:
+      type: object
+      properties:
+        x: { type: integer, minimum: 0, maximum: 9 }
+        y: { type: integer, minimum: 0, maximum: 9 }
+        result: { $ref: '#/components/schemas/ShotResult' }
+        sunkShip: { $ref: '#/components/schemas/ShipType', nullable: true }
+        shooterId: { type: string, format: uuid }
+        turnNumber: { type: integer, nullable: true }
+
+    ShipState:
+      type: object
+      properties:
+        type: { $ref: '#/components/schemas/ShipType' }
+        size: { type: integer }
+        positions:
+          type: array
+          items: { $ref: '#/components/schemas/Coordinate' }
+        sunk: { type: boolean }
+
+    GameState:
+      type: object
+      properties:
+        game:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            status: { $ref: '#/components/schemas/GameStatus' }
+            player1Id: { type: string, format: uuid }
+            player2Id: { type: string, format: uuid }
+            turnUserId: { type: string, format: uuid, nullable: true }
+            totalTurns: { type: integer }
+            result: { $ref: '#/components/schemas/GameResult', nullable: true }
+            winnerId: { type: string, format: uuid, nullable: true }
+        you:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            ships: { type: array, items: { $ref: '#/components/schemas/ShipState' } }
+            shotsReceived: { type: array, items: { $ref: '#/components/schemas/ShotRecord' } }
+            shotsFired: { type: array, items: { $ref: '#/components/schemas/ShotRecord' } }
+        opponent:
+          type: object
+          properties:
+            id: { type: string, format: uuid }
+            shotsReceived: { type: array, items: { $ref: '#/components/schemas/ShotRecord' } }
+            shotsFired: { type: array, items: { $ref: '#/components/schemas/ShotRecord' } }
+            ships: { type: array, items: { $ref: '#/components/schemas/ShipState' } }
+
+    Invitation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        gameId: { type: string, format: uuid }
+        inviterId: { type: string, format: uuid }
+        inviteeId: { type: string, format: uuid }
+        status: { $ref: '#/components/schemas/InvitationStatus' }
+        expiresAt: { type: string, format: date-time, nullable: true }
+
+    Coordinate:
+      type: object
+      required: [x, y]
+      properties:
+        x: { type: integer, minimum: 0, maximum: 9 }
+        y: { type: integer, minimum: 0, maximum: 9 }
+
+    ShipInput:
+      type: object
+      required: [type, positions]
+      properties:
+        type: { $ref: '#/components/schemas/ShipType' }
+        positions:
+          type: array
+          items: { $ref: '#/components/schemas/Coordinate' }
+
+    ShotInput:
+      type: object
+      required: [x, y]
+      properties:
+        x: { type: integer, minimum: 0, maximum: 9 }
+        y: { type: integer, minimum: 0, maximum: 9 }
+
+    Shot:
+      type: object
+      properties:
+        shooterId: { type: string, format: uuid }
+        targetUserId: { type: string, format: uuid }
+        x: { type: integer }
+        y: { type: integer }
+        result: { $ref: '#/components/schemas/ShotResult' }
+        sunkShip: { $ref: '#/components/schemas/ShipType', nullable: true }
+        turnUserId: { type: string, format: uuid, nullable: true }
+        turnNumber: { type: integer }
+        gameOver: { type: boolean }
+        winnerId: { type: string, format: uuid, nullable: true }
+
+    Error:
+      type: object
+      properties:
+        error: { type: string, example: ConflictError }
+        message: { type: string, example: 'Não é o seu turno.' }
