@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "npm --prefix frontend install && npm --prefix frontend run build",
+    "build": "npm --prefix frontend install --include=dev && npm --prefix frontend run build",
     "dev": "nodemon server.js",
     "test": "jest --runInBand",
     "coverage": "jest --coverage --runInBand",
@@ -35,7 +35,7 @@
   "bugs": {
     "url": "https://github.com/kaioribeiiro/battleship/issues"
   },
-  "homepage": "https://github.com/kaioribeiiro/battleship#readme",
+  "homepage": "https://battleship-ogod.onrender.com/",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "dotenv": "^18.0.7",

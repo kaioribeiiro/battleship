@@ -1,15 +1,24 @@
 # Battleship — Combate Naval // Naval Warfare
 
+[![Jogar Agora - Live Demo](https://img.shields.io/badge/Jogar_Agora-Live_Demo-10B981?logo=render&logoColor=white)](https://battleship-ogod.onrender.com/)
+[![Swagger API Docs](https://img.shields.io/badge/API_Docs-Swagger_UI-85EA2D?logo=swagger&logoColor=black)](https://battleship-ogod.onrender.com/api/docs)
 ![Node.js](https://img.shields.io/badge/Node.js-22%2B-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-5.x-000000?logo=express&logoColor=white)
 ![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-010101?logo=socket.io&logoColor=white)
 ![React](https://img.shields.io/badge/React-18.x-61DAFB?logo=react&logoColor=black)
 ![SQLite](https://img.shields.io/badge/SQLite-Sequelize_6-003B57?logo=sqlite&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
-![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0_Swagger-85EA2D?logo=swagger&logoColor=black)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
 Simulador estratégico de **Batalha Naval multijogador em tempo real** com interface tática inspirada em estações de comando naval. Construído com arquitetura em camadas no backend (**Node.js + Express 5 + Socket.IO 4 + Sequelize/SQLite**) e uma SPA reativa no frontend (**React 18 + Vite + Web Audio API**), com suporte completo a **Desktop e Mobile**, temas **Dark & Light** e internacionalização **Português / Inglês**.
+
+---
+
+## Demonstração Online (Live Demo)
+
+- **Jogar Agora (Web & Mobile):** **[https://battleship-ogod.onrender.com/](https://battleship-ogod.onrender.com/)** *(possui acesso rápido com 1 clique via Modo Visitante / Guest Demo)*
+- **Documentação Interativa da API (Swagger UI):** **[https://battleship-ogod.onrender.com/api/docs](https://battleship-ogod.onrender.com/api/docs)**
+- **Status do Servidor (Health Check):** **[https://battleship-ogod.onrender.com/api/health](https://battleship-ogod.onrender.com/api/health)**
 
 ---
 

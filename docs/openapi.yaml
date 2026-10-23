@@ -9,6 +9,8 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
 servers:
+  - url: https://battleship-ogod.onrender.com/api
+    description: Servidor de produção (Render)
   - url: http://localhost:3000/api
     description: Servidor de desenvolvimento local
 tags:

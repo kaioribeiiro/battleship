@@ -1,6 +1,8 @@
 # Referência da API REST
 
-- **Base URL:** `http://localhost:3000/api`
+- **Base URL (Produção):** `https://battleship-ogod.onrender.com/api`
+- **Base URL (Local):** `http://localhost:3000/api`
+- **Swagger UI Interativo:** [https://battleship-ogod.onrender.com/api/docs](https://battleship-ogod.onrender.com/api/docs)
 - **Formato:** JSON (`Content-Type: application/json`)
 - **Autenticação:** `Authorization: Bearer <jwt>` nos endpoints marcados com 🔒
 - **Tratamento de Erros:** ver [Seção 7 — Formato de Erros](#7-erros)

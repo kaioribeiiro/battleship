@@ -1,5 +1,8 @@
 # Documentação Técnica — Battleship (Combate Naval)
 
+- **Aplicação em Produção (Live Demo):** [https://battleship-ogod.onrender.com/](https://battleship-ogod.onrender.com/)
+- **Swagger UI em Produção:** [https://battleship-ogod.onrender.com/api/docs](https://battleship-ogod.onrender.com/api/docs)
+
 Documentação de engenharia do sistema **Battleship**, construído com **Node.js + Express 5 + Sequelize 6 + SQLite** no backend, **Socket.IO 4** para comunicação bidirecional em tempo real e **React 18 + Vite** no frontend.
 
 ## Índice
